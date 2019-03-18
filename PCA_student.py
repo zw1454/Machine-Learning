@@ -94,12 +94,12 @@ plt.imshow(mean,cmap=plt.cm.gray)
 #   Repeat elements of an array.
 
 #### Your Code Here ####
-
 mean = np.mean(faces, axis=0)
 mean_1 = np.repeat(mean, 400, axis=None)
 mean_2 = np.reshape(mean_1, (400,4096), 1)
 
 A = faces - mean_2
+print("Shape of A: ", A.shape)
 '''
 A_face = np.reshape(A[0],(64,64),order='F')
 image_count+=1
@@ -126,15 +126,26 @@ plt.imshow(A_face,cmap=plt.cm.gray)
 
 #### Your Code Here ####
 A_t = np.matrix.transpose(A)
+print("Shape of A_T: ", A_t.shape)
 L = np.matmul(A, A_t)
+print("Shape of L: ", L.shape)
 eigenvalues_L, eigenvectors_L = np.linalg.eig(L)
+print("Shape of eigenvectors_L: ", eigenvectors_L.shape)
+
+eigenvectors_L = eigenvectors_L.T
+
+" sort the eigenvalues and eigenvectors "
+eigenvalues_L, eigenvectors_L = zip(*sorted(zip(eigenvalues_L, eigenvectors_L)))
+eigenvalues_L = np.array(eigenvalues_L)[::-1]
+eigenvectors_L = np.array(eigenvectors_L)[::-1]
+print("Shape of eigenvectors_L after sorting: ", eigenvectors_L.shape)
 
 eigenvalues_V = eigenvalues_L
 eigenvectors_V = np.empty([0, 4096])
 for v in eigenvectors_L:
     new_v = np.matmul(A_t, np.array([v]).T)
     eigenvectors_V = np.append(eigenvectors_V, normalize(new_v.T), axis=0)
-
+print("Shape of eigenvectors_V: ", eigenvectors_V.shape)
 ########## Display the first 16 principal components ##################
 
 #### Your Code Here ####
@@ -148,8 +159,8 @@ for count in range(16):
 ########## Reconstruct the first face using the first two PCs #########
 
 #### Your Code Here ####
-new_first_face = np.dot(eigenvectors_V[0], faces[0])*eigenvectors_V[0] + \
-                    np.dot(eigenvectors_V[1], faces[0])*eigenvectors_V[1] + \
+new_first_face = np.dot(eigenvectors_V[0], A[0])*eigenvectors_V[0] + \
+                    np.dot(eigenvectors_V[1], A[0])*eigenvectors_V[1] + \
                     np.mean(faces, axis=0)
                     
 new_first_face = np.reshape(new_first_face,(64,64),order='F')
@@ -161,21 +172,18 @@ plt.imshow(new_first_face,cmap=plt.cm.gray)
 ########## Reconstruct random face using the first 5, 10, 25, 50, 100, 200, 300, 399  PCs ###########
 
 #### Your Code Here ####
-new_face_100 =  np.dot(eigenvectors_V[4], faces[99])*eigenvectors_V[4] + \
-                np.dot(eigenvectors_V[9], faces[99])*eigenvectors_V[9] + \
-                np.dot(eigenvectors_V[24], faces[99])*eigenvectors_V[24] + \
-                np.dot(eigenvectors_V[49], faces[99])*eigenvectors_V[49] + \
-                np.dot(eigenvectors_V[99], faces[99])*eigenvectors_V[99] + \
-                np.dot(eigenvectors_V[199], faces[99])*eigenvectors_V[199] + \
-                np.dot(eigenvectors_V[299], faces[99])*eigenvectors_V[299] + \
-                np.dot(eigenvectors_V[398], faces[99])*eigenvectors_V[398] + \
-                np.mean(faces, axis=0)
-                
-new_face_100 = np.reshape(new_face_100,(64,64),order='F')
-image_count += 1
-plt.figure(image_count)
-plt.title('The 100th face constructed by PCs')
-plt.imshow(new_face_100,cmap=plt.cm.gray)
+Omega = [np.dot(eigenvectors_V[i], A[99]) for i in range(len(eigenvectors_V))]
+PC_list = [4, 9, 24, 49, 99, 199, 299, 398]
+
+for e in PC_list:
+    X = np.mean(faces, axis=0)
+    for i in range(e+1):
+        X += Omega[i]*eigenvectors_V[i]
+    X = np.reshape(X,(64,64),order='F')
+    image_count += 1
+    plt.figure(image_count)
+    plt.title('The 100th face reconstructed by %d PCs'%(e+1))
+    plt.imshow(X, cmap=plt.cm.gray)
 
 ######### Plot proportion of variance of all the PCs ###############
 
@@ -199,9 +207,3 @@ plt.plot(X, portion)
 plt.title('Proportion of variance explained by all the principal components\n')
 plt.xlabel('Principal components')
 plt.ylabel('Variance')
-
-
-
-
-
-
